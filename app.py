@@ -9,16 +9,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. HERO SECTION (IMAGEM 1 DO ESBOÇO)
-st.markdown("<p class='model-active'>● SIMULATION MODEL ACTIVE</p>", unsafe_allowed_html=True)
-st.markdown("<h1 class='main-title-yellow'>2026 World Cup</h1>", unsafe_allowed_html=True)
-st.markdown("<h1 class='main-title-white'>Predictor</h1>", unsafe_allowed_html=True)
-st.markdown("<p class='subtitle'>Powered by ELO-based probabilistic simulation model</p>", unsafe_allowed_html=True)
-st.markdown("<p class='sub-caption'>100,000+ match simulations • Real-time recalibration</p>", unsafe_allowed_html=True)
+# 2. HERO SECTION (IMAGEM 1 DO ESBOÇO - USANDO APENAS COMANDOS NATIVOS)
+st.caption("🟢 SIMULATION MODEL ACTIVE")
+st.title("🏆 2026 World Cup Predictor")
+st.write("Powered by ELO-based probabilistic simulation model")
+st.caption("100,000+ match simulations • Real-time recalibration")
 
-st.markdown("<br>", unsafe_allowed_html=True)
+st.write("---")
 
-# Botões de ação centralizados
+# Botões de ação centralizados usando colunas nativas
 col_space1, col_btn1, col_btn2, col_space2 = st.columns([2, 1.2, 1, 2])
 with col_btn1:
     run_sim = st.button("🔮 Run full tournament simulation", use_container_width=True, type="primary")
@@ -30,33 +29,31 @@ if run_sim:
         time.sleep(1.5)
     st.success("Tournament simulated successfully!")
 
-st.markdown("<br><br>", unsafe_allowed_html=True)
+st.write("---")
 
 # 3. TOP TITLE CONTENDERS SECTION (IMAGEM 2 DO ESBOÇO)
-st.markdown("### 📈 Top Title Contenders")
+st.subheader("📈 Top Title Contenders")
 
 contenders = [
-    {"pos": 1, "sigla": "ES", "nome": "Spain", "status": "FAVORITE", "prob": 21.7, "elo": 2075, "cor": "#f59e0b"},
-    {"pos": 2, "sigla": "BR", "nome": "Brazil", "status": "FAVORITE", "prob": 18.4, "elo": 2045, "cor": "#0ea5e9"},
-    {"pos": 3, "sigla": "FR", "nome": "France", "status": "CONTENDER", "prob": 15.2, "elo": 2030, "cor": "#ec4899"},
-    {"pos": 4, "sigla": "AR", "nome": "Argentina", "status": "CONTENDER", "prob": 12.8, "elo": 2020, "cor": "#10b981"},
-    {"pos": 5, "sigla": "EN", "nome": "England", "status": "CONTENDER", "prob": 8.6, "elo": 1995, "cor": "#a855f7"},
+    {"pos": 1, "sigla": "ES", "nome": "Spain", "status": "FAVORITE", "prob": 21.7, "elo": 2075},
+    {"pos": 2, "sigla": "BR", "nome": "Brazil", "status": "FAVORITE", "prob": 18.4, "elo": 2045},
+    {"pos": 3, "sigla": "FR", "nome": "France", "status": "CONTENDER", "prob": 15.2, "elo": 2030},
+    {"pos": 4, "sigla": "AR", "nome": "Argentina", "status": "CONTENDER", "prob": 12.8, "elo": 2020},
+    {"pos": 5, "sigla": "EN", "nome": "England", "status": "CONTENDER", "prob": 8.6, "elo": 1995},
 ]
 
+# Renderização usando colunas e elementos 100% nativos
 for c in contenders:
-    badge_lbl = "FAVORITE" if c["status"] == "FAVORITE" else "CONTENDER"
-    badge_clss = "badge-fav" if c["status"] == "FAVORITE" else "badge-cont"
-    
-    with st.container():
-        col_team, col_progress, col_values = st.columns([2.5, 5, 1.2])
-        with col_team:
-            st.markdown(f"<div class='team-row'><span class='team-pos'>{c['pos']}</span><span class='team-sigla'>{c['sigla']}</span><span class='team-name'>{c['nome']}</span><span class='{badge_clss}'>{badge_lbl}</span></div>", unsafe_allowed_html=True)
-        with col_progress:
-            st.markdown(f"<div class='progress-bg'><div class='progress-bar' style='background-color: {c['cor']}; width: {c['prob'] * 4.2}%;'></div></div>", unsafe_allowed_html=True)
-        with col_values:
-            st.markdown(f"<div class='values-row'><b>{c['prob']}%</b><br><span class='elo-text'>ELO {c['elo']}</span></div>", unsafe_allowed_html=True)
+    col_team, col_progress, col_values = st.columns([2.5, 5, 1.2])
+    with col_team:
+        st.write(f"**{c['pos']}** {c['sigla']}  **{c['nome']}** ({c['status']})")
+    with col_progress:
+        # Barra de progresso nativa do Streamlit
+        st.progress(c['prob'] / 100.0)
+    with col_values:
+        st.write(f"**{c['prob']}%** (ELO {c['elo']})")
 
-st.markdown("<br><hr class='custom-hr'><br>", unsafe_allowed_html=True)
+st.write("---")
 
 # 4. FOOTER METRICS
 col_m1, col_m2, col_m3 = st.columns(3)
