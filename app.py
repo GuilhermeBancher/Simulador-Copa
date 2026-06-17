@@ -88,4 +88,4 @@ with tab_rankings:
         {"pos": 5, "sigla": "EN", "nome": "England", "elo": 1995, "prob": 8.6},
         {"pos": 6, "sigla": "DE", "nome": "Germany", "elo": 1980, "prob": 6.4},
         {"pos": 7, "sigla": "PT", "nome": "Portugal", "elo": 1975, "prob": 5.1},
-        {"pos": 8, "sigla": "NL", "nome": "Netherlands", "elo": 1960, "prob": 4.5}
+        {"pos": 8, "sigla": "NL", "nome": "Netherlands", "elo": 1960, "prob": 4.5}]
