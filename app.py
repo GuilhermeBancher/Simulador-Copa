@@ -14,13 +14,13 @@ st.set_page_config(
 )
 
 # ==============================================================================
-# 🧠 CORAÇÃO DO SEU MOTOR (COPIADO DO SEU SIMULADOR_TORNEIO.PY)
+# 🧠 CORAÇÃO DO SEU MOTOR (MIGRADOS DO SEU SIMULADOR_TORNEIO.PY / SIMULADOR_JOGOS.PY)
 # ==============================================================================
 
 HOSTS = ["United States", "Mexico", "Canada"]
 MEDIA_GOLS = 2.6
 
-# Seus grupos oficiais e calibrados para a Copa do Mundo 2026
+# Seus grupos oficiais da Copa do Mundo 2026
 GRUPOS = {
     "A": ["Czechia", "Mexico", "South Korea", "South Africa"], 
     "B": ["Canada", "Switzerland", "Qatar", "Bosnia and Herzegovina"],
@@ -36,7 +36,8 @@ GRUPOS = {
     "L": ["England", "Croatia", "Ghana", "Panama"]
 }
 
-# Criando um Set para isolar apenas as 48 seleções dos seus grupos
+
+# Criando um set para isolar apenas as 48 seleções dos seus grupos
 SELECOES_COPA = set()
 for times in GRUPOS.values():
     SELECOES_COPA.update(times)
@@ -80,7 +81,7 @@ def jogar_partida(time_a, time_b, mata_mata=False):
     gols_b = np.random.poisson(lambda_b)
     
     if mata_mata and gols_a == gols_b:
-        # Desempate por pênalti probabilístico
+        # Desempate por pênalti probabilístico baseado na expectativa de força
         vencedor = time_a if random.random() < exp_a else time_b
         return vencedor
     
@@ -119,7 +120,7 @@ def simular_uma_copa_do_mundo():
     vencedores_32 = classificados_grupos + [t[0] for t in melhores_terceiros]
     random.shuffle(vencedores_32)
     
-    # Mata-Mata (Simulação cascata até a final)
+    # Mata-Mata (Simulação em cascata até a grande final)
     vencedores_16 = [jogar_partida(vencedores_32[i], vencedores_32[i+1], mata_mata=True) for i in range(0, 32, 2)]
     vencedores_8 = [jogar_partida(vencedores_16[i], vencedores_16[i+1], mata_mata=True) for i in range(0, 16, 2)]
     vencedores_4 = [jogar_partida(vencedores_8[i], vencedores_8[i+1], mata_mata=True) for i in range(0, 8, 2)]
@@ -128,9 +129,31 @@ def simular_uma_copa_do_mundo():
     campeao = jogar_partida(finalistas[0], finalistas[1], mata_mata=True)
     return campeao
 
+# Executor de Simulações em Lote para extrair probabilidades probabilísticas reais
+@st.cache_data(show_spinner=False)
+def rodar_simulacoes_lote(n_simulacoes=2000):
+    contagem_campeoes = Counter()
+    for _ in range(n_simulacoes):
+        campeao = simular_uma_copa_do_mundo()
+        contagem_campeoes[campeao] += 1
+        
+    # Inicializa todas as 48 seleções com pelo menos 0 vitórias caso não ganhem nenhuma
+    dados_probabilidades = {}
+    for selecao in SELECOES_COPA:
+        vitorias = contagem_campeoes.get(selecao, 0)
+        # Probabilidade real: (vitorias / total) * 100
+        dados_probabilidades[selecao] = (vitorias / n_simulacoes) * 100
+        
+    return dados_probabilidades
+
+# Se o usuário clicar em recalibrar com lote maior, salvamos no estado da sessão (st.session_state)
+if "n_sim_executadas" not in st.session_state:
+    st.session_state["n_sim_executadas"] = 2000
+    st.session_state["dict_probs"] = rodar_simulacoes_lote(2000)
+
 
 # ==============================================================================
-# 🗂️ NAVEGAÇÃO POR ABAS (Isolamento completo contra duplicações)
+# 🗂️ NAVEGAÇÃO POR ABAS
 # ==============================================================================
 tab_home, tab_rankings, tab_single_match = st.tabs([
     "🏠 Home", 
@@ -146,7 +169,7 @@ with tab_home:
     st.caption("🟢 SIMULATION MODEL ACTIVE")
     st.title("🏆 2026 World Cup Predictor")
     st.write("Powered by ELO-based probabilistic simulation model")
-    st.caption("100,000+ match simulations • Real-time chaves calibration")
+    st.caption(f"Active dataset: {st.session_state['n_sim_executadas']:,} match simulations • Real-time Monte Carlo matrix")
 
     st.write("---")
 
@@ -154,80 +177,83 @@ with tab_home:
     with col_btn1:
         run_sim = st.button("🔮 Run full tournament simulation", type="primary", key="btn_home_sim")
     with col_btn2:
-        st.caption("Monte Carlo matrix calibrated dynamically with outputs/elo_ranking.csv")
+        st.caption("Click to trigger a massive 10,000 tournament Monte Carlo loop and recalculate all vectors.")
+
+    if run_sim:
+        with st.spinner("Running 10,000 simulations through official FIFA tree... This might take a few seconds."):
+            # Roda um lote de precisão maior e atualiza o estado dinâmico da aplicação
+            novas_probs = rodar_simulacoes_lote(n_simulacoes=10000)
+            st.session_state["n_sim_executadas"] = 10000
+            st.session_state["dict_probs"] = novas_probs
+        st.success("🎯 Projections recalibrated! Probabilities updated via Monte Carlo matrix.")
+        st.rerun()
 
     st.write("---")
-    st.subheader("📈 Top Title Contenders (Calibrados por ELO)")
+    st.subheader("📈 Top Title Contenders (Monte Carlo Real Output)")
 
-    # Puxa dinamicamente as 5 melhores seleções do SEU csv (que estão na Copa) para a home
-    df_filtrado_copa = df_ranking_completo[df_ranking_completo["team"].isin(SELECOES_COPA)].copy()
-    df_filtrado_copa = df_filtrado_copa.sort_values("elo", ascending=False).reset_index(drop=True)
+    # Monta o DataFrame unificado com os dados ELO e injeta as probabilidades reais obtidas das simulações
+    df_home = df_ranking_completo[df_ranking_completo["team"].isin(SELECOES_COPA)].copy()
+    df_home["prob"] = df_home["team"].map(st.session_state["dict_probs"])
+    df_home = df_home.sort_values(by=["prob", "elo"], ascending=[False, False]).reset_index(drop=True)
     
-    contenders = df_filtrado_copa.head(5)
-    
-    # Dicionário de siglas estilizadas para o card de favoritos da home
-    siglas_home = {"Argentina": "AR", "France": "FR", "England": "EN", "Spain": "ES", "Germany": "DE", "Brazil": "BR"}
+    # Exibe as 5 seleções com maiores chances reais de erguer a taça nas simulações
+    contenders = df_home.head(5)
+    siglas_home = {"Argentina": "AR", "France": "FR", "England": "EN", "Spain": "ES", "Germany": "DE", "Brazil": "BR", "Portugal": "PT", "Belgium": "BE"}
 
     for idx, c in contenders.iterrows():
         col_team, col_progress, col_values = st.columns([2.5, 5, 1.2])
         sigla = siglas_home.get(c['team'], "FC")
-        
-        # Gera uma probabilidade proporcional estimada com base na força ELO do seu arquivo
-        prob_estimada = (float(c['elo']) / 2080.5) * 20.0
+        prob_atual = float(c['prob'])
         
         with col_team:
             st.write(f"**{idx+1}** &nbsp;&nbsp; `{sigla}` &nbsp;&nbsp; **{c['team']}**")
         with col_progress:
-            st.progress(min(prob_estimada / 100.0, 1.0))
+            st.progress(prob_atual / 100.0 if prob_atual > 0 else 0.0)
         with col_values:
-            st.write(f"**{prob_estimada:.1f}%** ({int(c['elo'])} pts)")
+            st.write(f"**{prob_atual:.2f}%** ({int(c['elo'])} pts)")
 
     st.write("---")
     col_m1, col_m2, col_m3 = st.columns(3)
     with col_m1:
         st.metric(label="🏆 Teams Analyzed", value=f"{len(SELECOES_COPA)} (World Cup Only)")
     with col_m2:
-        st.metric(label="⚡ Simulations Run", value="100K+")
+        st.metric(label="⚡ Active Simulated Tournaments", value=f"{st.session_state['n_sim_executadas']:,}")
     with col_m3:
-        st.metric(label="📈 Model Calibration", value="FIFA/Elo Official")
-
-    if run_sim:
-        with st.spinner("Running 100,000 simulations through FIFA official chaves..."):
-            time.sleep(1.2)
-            campeao_simulado = simular_uma_copa_do_mundo()
-        st.success(f"🏆 Simulation finished! In this run, the champion was: **{campeao_simulado}**")
+        # Soma de verificação para provar matematicamente que fecha em 100.0%
+        soma_validada = sum(st.session_state["dict_probs"].values())
+        st.metric(label="📊 Matrix Probability Sum", value=f"{soma_validada:.1f}%")
 
 
 # ==============================================================================
-# CONTEÚDO DA ABA 2: GLOBAL RANKINGS (100% DINÂMICO - APENAS AS 48 DA COPA)
+# CONTEÚDO DA ABA 2: GLOBAL RANKINGS (ORDENADO E CALCULADO VIA SIMULAÇÃO)
 # ==============================================================================
 with tab_rankings:
-    st.title("📊 Global ELO Rankings")
-    st.write("Full standing of the 48 qualified nations fetched dynamically from your calculation matrix.")
+    st.title("📊 Global ELO Rankings & Title Odds")
+    st.write("Full standing of the 48 qualified nations. Odds are mapped directly from champion frequencies.")
     
     search_query = st.text_input("🔍 Search for a country...", "", key="search_rankings").strip().lower()
     st.write("---")
     
-    # Cabeçalho estruturado das colunas
     col_h_team, col_h_elo, col_h_progress, col_h_prob = st.columns([2.5, 1, 4, 1])
     with col_h_team: st.write("**TEAM**")
     with col_h_elo: st.write("**ELO SCORE**")
-    with col_h_progress: st.write("**STRENGTH VECTOR**")
-    with col_h_prob: st.write("**WEIGHT**")
+    with col_h_progress: st.write("**WIN PROBABILITY MATRIX**")
+    with col_h_prob: st.write("**CHANCE**")
         
     st.write("---")
+    
+    # Prepara o DataFrame completo filtrado para a tabela principal de visualização
+    df_rankings_completo = df_ranking_completo[df_ranking_completo["team"].isin(SELECOES_COPA)].copy()
+    df_rankings_completo["prob"] = df_rankings_completo["team"].map(st.session_state["dict_probs"])
+    
+    # Ordena estritamente por força de ELO para refletir o ranking dinâmico de qualidade técnica real
+    df_rankings_completo = df_rankings_completo.sort_values("elo", ascending=False).reset_index(drop=True)
     
     visible_teams = 0
     posicao_ranking = 1
     
-    # Percorre o seu dataframe real ordenado por ELO
-    for _, row in df_ranking_completo.sort_values("elo", ascending=False).iterrows():
+    for _, row in df_rankings_completo.iterrows():
         nome_time = str(row["team"])
-        
-        # 🔥 O FILTRO PREFEITO: Se a seleção do CSV não estiver nos seus grupos, ela é pulada automaticamente!
-        if nome_time not in SELECOES_COPA:
-            continue
-            
         nome_comparar = nome_time.lower()
         
         # Filtro de Busca tolerante a maiúsculas/minúsculas e adaptação Brasil/Brazil
@@ -242,9 +268,7 @@ with tab_rankings:
             
         visible_teams += 1
         elo_valor = float(row["elo"])
-        
-        # Normalização matemática para preencher a barra de progresso de forma realista
-        barra_normalizada = min(max((elo_valor - 1400) / (2100 - 1400), 0.0), 1.0)
+        prob_campeao = float(row["prob"])
         
         col_t_name, col_t_elo, col_t_bar, col_t_prob = st.columns([2.5, 1, 4, 1])
         with col_t_name:
@@ -252,11 +276,10 @@ with tab_rankings:
         with col_t_elo:
             st.write(f"⚡ {elo_valor:.1f}")
         with col_t_bar:
-            st.progress(barra_normalizada)
+            # A barra de progresso agora reflete com precisão cirúrgica a chance matemática da seleção ganhar a copa
+            st.progress(prob_campeao / 100.0 if prob_campeao > 0 else 0.0)
         with col_t_prob:
-            # Peso de força calculado dinamicamente com base no teto de pontos do banco
-            peso_percentual = (elo_valor / 2080.5) * 100
-            st.write(f"{peso_percentual:.1f}%")
+            st.write(f"**{prob_campeao:.2f}%**")
             
         posicao_ranking += 1
 
@@ -296,7 +319,7 @@ with tab_single_match:
                 vitorias_t2 = 0
                 empates = 0
                 
-                # Executa 1.000 simulações rápidas usando sua função jogar_partida() em tempo real
+                # Executa 1.000 simulações rápidas usando sua função jogar_partida() do Poisson em tempo real
                 for _ in range(1000):
                     g_a, g_b = jogar_partida(match['t1'], match['t2'], mata_mata=False)
                     if g_a > g_b: vitorias_t1 += 1
