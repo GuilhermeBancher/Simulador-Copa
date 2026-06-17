@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 
-# 1. Configuração da página (Obrigatória em primeiro lugar)
+# 1. Configuração da página (Deve ser o primeiro comando)
 st.set_page_config(
     page_title="WC Prediction Engine", 
     page_icon="🏆", 
@@ -10,7 +10,7 @@ st.set_page_config(
 )
 
 # ==============================================================================
-# ESTRUTURA CRUCIAL DAS ABAS (Tudo precisa rodar dentro dos blocos 'with')
+# NAVEGAÇÃO POR ABAS (Tudo envelopado de forma isolada)
 # ==============================================================================
 tab_home, tab_rankings, tab_single_match = st.tabs([
     "🏠 Home", 
@@ -29,7 +29,6 @@ with tab_home:
 
     st.write("---")
 
-    # Botões internos da aba Home para não duplicar
     col_btn1, col_btn2 = st.columns([1.2, 4])
     with col_btn1:
         run_sim = st.button("🔮 Run full tournament simulation", type="primary", key="btn_home_sim")
@@ -118,7 +117,7 @@ with tab_rankings:
 
 
 # ==============================================================================
-# CONTEÚDO DA ABA 3: SINGLE MATCH SIMULATION (ETAPA 3)
+# CONTEÚDO DA ABA 3: SINGLE MATCH SIMULATION (FORMATO 100% SEGURO)
 # ==============================================================================
 with tab_single_match:
     st.title("🔮 Single Match Prediction")
@@ -126,32 +125,14 @@ with tab_single_match:
     
     st.write("---")
     
-    # Mock dos jogos dos próximos 3 dias (Futuramente conectados com a API externa)
     upcoming_fixtures = [
-        {"date": "June 18, 2026", "t1": "Brazil", "s1": "BR", "t2": "Germany", "s2": "DE", "time": "16:00 UTC"},
-        {"date": "June 19, 2026", "t1": "Spain", "s1": "ES", "t2": "Morocco", "s2": "MA", "time": "19:00 UTC"},
-        {"date": "June 20, 2026", "t1": "Argentina", "s1": "AR", "t2": "France", "s2": "FR", "time": "13:00 UTC"},
+        {"date": "June 18, 2026", "t1": "Brazil", "s1": "BR", "flag1": "🇧🇷", "t2": "Germany", "s2": "DE", "flag2": "🇩🇪", "time": "16:00 UTC"},
+        {"date": "June 19, 2026", "t1": "Spain", "s1": "ES", "flag1": "🇪🇸", "t2": "Morocco", "s2": "MA", "flag2": "🇲🇦", "time": "19:00 UTC"},
+        {"date": "June 20, 2026", "t1": "Argentina", "s1": "AR", "flag1": "🇦🇷", "t2": "France", "s2": "FR", "flag2": "🇫🇷", "time": "13:00 UTC"},
     ]
     
-    # Construção dos blocos de confronto idênticos ao esboço
+    # Renderização limpa sem NENHUMA tag HTML (Impossível quebrar)
     for idx, match in enumerate(upcoming_fixtures):
-        st.subheader(f"📅 {match['date']} — {match['time']}")
+        st.write(f"📅 **{match['date']} — {match['time']}**")
         
-        # Grid do confronto: Time 1 | Versus | Time 2 | Botão de Calcular
-        c_t1, c_vs, c_t2, c_predict = st.columns([2, 0.5, 2, 1.5])
-        
-        with c_t1:
-            st.markdown(f"<div style='text-align: right; font-size: 1.2rem; padding-top: 5px;'><b>{match['t1']}</b> `{match['s1']}`</div>", unsafe_allowed_html=True)
-        with c_vs:
-            st.markdown("<div style='text-align: center; color: #4b5563; font-weight: bold; font-size: 1.1rem; padding-top: 5px;'>VS</div>", unsafe_allowed_html=True)
-        with c_t2:
-            st.markdown(f"<div style='text-align: left; font-size: 1.2rem; padding-top: 5px;'>`{match['s2']}` <b>{match['t2']}</b></div>", unsafe_allowed_html=True)
-        with c_predict:
-            # Botão individual para cada partida usando chaves (keys) dinâmicas para o Streamlit não bugar
-            if st.button(f"Simulate Match {idx+1}", key=f"btn_match_{idx}"):
-                st.info(f"Simulating {match['t1']} vs {match['t2']}...")
-                time.sleep(0.8)
-                # Exibe um resultado de teste na tela
-                st.success(f"Prediction complete: Win {match['t1']} (54%) | Draw (22%) | Win {match['t2']} (24%)")
-                
-        st.write("---")
+        c_t1, c_vs, c_t2, c_predict = st.columns(
